@@ -1,0 +1,79 @@
+# terraform-plan.yml
+name: "Terraform Plan"
+
+on:
+  pull_request:
+    branches:
+      - main
+
+# These permissions are required for OIDC and for posting a PR comment
+permissions:
+  id-token: write # Required for OIDC
+  contents: read # Required to check out code
+  pull-requests: write # Required to post a PR comment
+
+jobs:
+  terraform-plan:
+    name: "Terraform Plan"
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Install Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # 3. Configure AWS credentials using OIDC
+      #    This step "assumes the role" using the OIDC token
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1 # Your AWS region
+
+      # 4. Initialize Terraform
+      - name: Terraform Init
+        run: terraform init
+
+      # 5. Check formatting
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      # 6. Validate code
+      - name: Terraform Validate
+        run: terraform validate
+
+      # 7. Generate a plan
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -out=tfplan
+
+      # 7.5. Convert binary plan to text for PR comment
+      - name: Convert plan to text
+        run: terraform show -no-color tfplan > tfplan.txt
+
+      # 8. Add plan to PR comment
+      - name: Add Plan to PR Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { readFileSync } = require('fs');
+            const plan = readFileSync('tfplan.txt', 'utf8');
+
+            const output = `#### Terraform Plan 📖 (OIDC)
+
+            \`\`\`terraform
+            ${plan}
+            \`\`\`
+
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
