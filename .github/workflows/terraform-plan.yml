@@ -51,13 +51,17 @@ jobs:
         id: plan
         run: terraform plan -no-color -out=tfplan
 
+      # 7.5. Convert binary plan to text for PR comment
+      - name: Convert plan to text
+        run: terraform show -no-color tfplan > tfplan.txt
+
       # 8. Add plan to PR comment
       - name: Add Plan to PR Comment
         uses: actions/github-script@v7
         with:
           script: |
             const { readFileSync } = require('fs');
-            const plan = readFileSync('tfplan', 'utf8');
+            const plan = readFileSync('tfplan.txt', 'utf8');
 
             const output = `#### Terraform Plan 📖 (OIDC)
 
