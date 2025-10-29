@@ -35,7 +35,7 @@ jobs:
         with:
           sarif_file: checkov.sarif
 
-  # --- NEW JOB: INFRACOST ---
+  # --- INFRACOST JOB ---
   infracost:
     name: "Cost Estimation"
     runs-on: ubuntu-latest
@@ -53,29 +53,24 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-1
 
-      # We run 'init' here just for Infracost to read the modules/providers
       - name: Terraform Init
         run: terraform init
 
-      # Generate Infracost JSON and save to file
       - name: Run Infracost
         run: |
           infracost breakdown --path . --format=json --out-file=infracost.json
 
-      # Post Infracost output as a PR comment
       - name: Post Infracost Comment
         uses: infracost/actions/comment@v3
         with:
           path: infracost.json
-          # This is the secret we added
           api-key: ${{ secrets.INFRACOST_API_KEY }}
-          behavior: update # Update the same comment on new pushes
+          behavior: update
 
-  # --- UPDATED JOB: TERRAFORM PLAN ---
+  # --- TERRAFORM PLAN JOB ---
   terraform-plan:
     name: "Terraform Plan"
     runs-on: ubuntu-latest
-    # Wait for BOTH security and cost scans to finish
     needs: [checkov-scan, infracost]
 
     steps:
