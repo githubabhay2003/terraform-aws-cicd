@@ -35,7 +35,7 @@ jobs:
         with:
           sarif_file: checkov.sarif
 
-  # --- CORRECTED INFRACOST JOB ---
+  # --- CORRECTED INFRACOST JOB (USING CLI) ---
   infracost:
     name: "Cost Estimation"
     runs-on: ubuntu-latest
@@ -44,6 +44,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Setup Terraform and init are still needed for Infracost to read the plan
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
@@ -56,28 +57,32 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      # Step 1: Run Infracost breakdown using the correct action
-      - name: Run Infracost
-        uses: infracost/actions@v3
-        with:
-          api-key: ${{ secrets.INFRACOST_API_KEY }}
-          path: .
-          format: json
-          out-file: infracost.json
+      # Step 1: Install the Infracost CLI
+      - name: Install Infracost
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
 
-      # Step 2: Post the comment using the same action
-      - name: Post Infracost Comment
-        uses: infracost/actions@v3
-        with:
-          api-key: ${{ secrets.INFRACOST_API_KEY }}
-          path: infracost.json
-          behavior: update
+      # Step 2: Run Infracost breakdown
+      - name: Run Infracost breakdown
+        run: infracost breakdown --path . --format json --out-file infracost.json
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
+      # Step 3: Post the comment
+      - name: Post Infracost comment
+        run: |
+          infracost comment github --path infracost.json \
+            --behavior update \
+            --repo ${{ github.repository }} \
+            --pull-request ${{ github.event.pull_request.number }}
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # --- TERRAFORM PLAN JOB ---
   terraform-plan:
     name: "Terraform Plan"
     runs-on: ubuntu-latest
-    # Wait for BOTH security and cost scans to finish
     needs: [checkov-scan, infracost]
 
     steps:
