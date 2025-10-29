@@ -6,56 +6,64 @@ on:
     branches:
       - main
 
-# These permissions are required for OIDC and for posting a PR comment
 permissions:
   id-token: write # Required for OIDC
   contents: read # Required to check out code
   pull-requests: write # Required to post a PR comment
+  security-events: write # Required for tfsec to post findings
 
 jobs:
-  terraform-plan:
-    name: "Terraform Plan"
+  # --- NEW JOB: TFSEC SCAN ---
+  tfsec-scan:
+    name: "Security Scan"
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Check out the code
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Install Terraform
+      # Run the tfsec-pr-commenter action
+      # This will scan the code and post findings as PR comments
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-pr-commenter@v1.4.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  # --- UPDATED JOB: TERRAFORM PLAN ---
+  terraform-plan:
+    name: "Terraform Plan"
+    runs-on: ubuntu-latest
+    needs: tfsec-scan # <-- This is new! It waits for the scan to pass.
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # 3. Configure AWS credentials using OIDC
-      #    This step "assumes the role" using the OIDC token
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-1 # Your AWS region
+          aws-region: us-east-1
 
-      # 4. Initialize Terraform
       - name: Terraform Init
         run: terraform init
 
-      # 5. Check formatting
       - name: Terraform Format Check
         run: terraform fmt -check
 
-      # 6. Validate code
       - name: Terraform Validate
         run: terraform validate
 
-      # 7. Generate a plan
       - name: Terraform Plan
         id: plan
         run: terraform plan -no-color -out=tfplan
 
-      # 7.5. Convert binary plan to text for PR comment
       - name: Convert plan to text
         run: terraform show -no-color tfplan > tfplan.txt
 
-      # 8. Add plan to PR comment
       - name: Add Plan to PR Comment
         uses: actions/github-script@v7
         with:
