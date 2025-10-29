@@ -23,7 +23,11 @@ This project demonstrates a fully automated CI/CD pipeline for provisioning, val
 
 Here is a short video demonstrating the full CI/CD pipeline in action, from pull request to deployment.
 
-`[Link to Your Demo Video or GIF]`
+
+https://github.com/user-attachments/assets/5f20f343-942a-44f0-bed6-c2062b536e55
+
+
+
 
 ---
 
