@@ -1,0 +1,43 @@
+# terraform-apply.yml
+name: "Terraform Apply"
+
+on:
+  # Trigger this workflow on pushes to the 'main' branch
+  push:
+    branches:
+      - main
+
+# Permissions required for OIDC
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform-apply:
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Install Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # 3. Configure AWS credentials using OIDC
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1 # Your AWS region
+
+      # 4. Initialize Terraform
+      - name: Terraform Init
+        run: terraform init
+
+      # 5. Apply the Terraform plan
+      # -auto-approve skips the 'yes' prompt
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false
