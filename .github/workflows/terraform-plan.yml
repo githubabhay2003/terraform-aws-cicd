@@ -44,7 +44,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Setup Terraform and init are still needed for Infracost to read the plan
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
@@ -57,27 +56,25 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      # Step 1: Install the Infracost CLI
       - name: Install Infracost
         run: |
           curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
 
-      # Step 2: Run Infracost breakdown
       - name: Run Infracost breakdown
         run: infracost breakdown --path . --format json --out-file infracost.json
         env:
           INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
 
-      # Step 3: Post the comment
+      # --- THIS STEP IS NOW FIXED ---
       - name: Post Infracost comment
         run: |
           infracost comment github --path infracost.json \
             --behavior update \
             --repo ${{ github.repository }} \
-            --pull-request ${{ github.event.pull_request.number }}
+            --pull-request ${{ github.event.pull_request.number }} \
+            --github-token ${{ secrets.GITHUB_TOKEN }}
         env:
           INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # --- TERRAFORM PLAN JOB ---
   terraform-plan:
