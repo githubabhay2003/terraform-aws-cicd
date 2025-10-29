@@ -35,7 +35,7 @@ jobs:
         with:
           sarif_file: checkov.sarif
 
-  # --- INFRACOST JOB ---
+  # --- CORRECTED INFRACOST JOB ---
   infracost:
     name: "Cost Estimation"
     runs-on: ubuntu-latest
@@ -56,21 +56,28 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
+      # Step 1: Run Infracost breakdown using the correct action
       - name: Run Infracost
-        run: |
-          infracost breakdown --path . --format=json --out-file=infracost.json
-
-      - name: Post Infracost Comment
-        uses: infracost/actions/comment@v3
+        uses: infracost/actions@v3
         with:
-          path: infracost.json
           api-key: ${{ secrets.INFRACOST_API_KEY }}
+          path: .
+          format: json
+          out-file: infracost.json
+
+      # Step 2: Post the comment using the same action
+      - name: Post Infracost Comment
+        uses: infracost/actions@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+          path: infracost.json
           behavior: update
 
   # --- TERRAFORM PLAN JOB ---
   terraform-plan:
     name: "Terraform Plan"
     runs-on: ubuntu-latest
+    # Wait for BOTH security and cost scans to finish
     needs: [checkov-scan, infracost]
 
     steps:
