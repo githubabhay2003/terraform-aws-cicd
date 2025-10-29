@@ -10,30 +10,32 @@ permissions:
   id-token: write # Required for OIDC
   contents: read # Required to check out code
   pull-requests: write # Required to post a PR comment
-  security-events: write # Required for tfsec to post findings
 
 jobs:
-  # --- NEW JOB: TFSEC SCAN ---
-  tfsec-scan:
-    name: "Security Scan"
+  # --- NEW JOB: CHECKOV SCAN ---
+  checkov-scan:
+    name: "Security Scan (Checkov)"
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Run the tfsec-pr-commenter action
-      # This will scan the code and post findings as PR comments
-      - name: Run tfsec
-        uses: aquasecurity/tfsec-pr-commenter@v1.4.0
+      # This is the official, maintained action for Checkov
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@v12
         with:
+          directory: . # Scan the root directory
+          framework: terraform # Specify we are scanning terraform
+          output_format: github_pull_request # This will post a comment
+          soft_fail: true # We'll let the check pass so we can see the plan
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
   # --- UPDATED JOB: TERRAFORM PLAN ---
   terraform-plan:
     name: "Terraform Plan"
     runs-on: ubuntu-latest
-    needs: tfsec-scan # <-- This is new! It waits for the scan to pass.
+    needs: checkov-scan # <-- This now waits for the new Checkov scan
 
     steps:
       - name: Checkout
