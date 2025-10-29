@@ -151,3 +151,38 @@ Fork this repo to your own GitHub account.
 3.  Push the branch and open a Pull Request.
 4.  Observe the `plan-and-cost` and `checkov-scan` jobs run.
 5.  Merge the PR, navigate to the **Actions** tab, and approve the deployment to see it apply.
+## 📸 Usage Examples & Screenshots
+
+The pipeline provides rich, automated feedback directly in the Pull Request:
+
+1. **Security Scan Results**  
+   Checkov flags vulnerabilities directly on the "Files changed" tab.
+<img width="1916" height="907" alt="Screenshot 2025-10-29 190850" src="https://github.com/user-attachments/assets/3146404d-4621-4e04-a379-28a6a1c96c4b" />
+
+2. **Cost Estimation Report**  
+   Infracost posts a detailed cost breakdown as a comment.
+<img width="1043" height="587" alt="Screenshot 2025-10-29 144825" src="https://github.com/user-attachments/assets/8e5558c0-059e-4d3f-a921-0a5364f6b3c7" />
+
+3. **Terraform Plan Output**  
+   A clean plan output is posted for easy review.
+<img width="1920" height="1080" alt="Screenshot (1454)" src="https://github.com/user-attachments/assets/e2bb0018-f743-458b-804a-fb1d65364610" />
+
+4. **Manual Approval Gate**
+<img width="1897" height="901" alt="Screenshot 2025-10-29 190702" src="https://github.com/user-attachments/assets/1140d633-5a53-4de6-845d-7ddc494f4afc" />
+
+
+## 🤝 Contributing
+
+Contributions are welcome! Please open an issue to discuss your ideas or submit a pull request with your changes.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.  
+
+
+## 👨‍💻 Author
+
+**Abhay Kumar Saini**  
+
+- GitHub: [@githubabhay2003](https://github.com/githubabhay2003)  
+- LinkedIn: [https://www.linkedin.com/in/abhay-kumar-saini-571891264/](https://www.linkedin.com/in/https://www.linkedin.com/in/abhay-kumar-saini-571891264/)
