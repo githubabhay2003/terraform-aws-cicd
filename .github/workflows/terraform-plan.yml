@@ -10,9 +10,10 @@ permissions:
   id-token: write # Required for OIDC
   contents: read # Required to check out code
   pull-requests: write # Required to post a PR comment
+  security-events: write # Required for SARIF upload
 
 jobs:
-  # --- NEW JOB: CHECKOV SCAN ---
+  # --- UPDATED JOB: CHECKOV SCAN + SARIF UPLOAD ---
   checkov-scan:
     name: "Security Scan (Checkov)"
     runs-on: ubuntu-latest
@@ -21,14 +22,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # This is the official, maintained action for Checkov
+      # Step 1: Run Checkov and output a SARIF file
       - name: Run Checkov
         uses: bridgecrewio/checkov-action@v12
         with:
-          directory: . # Scan the root directory
-          framework: terraform # Specify we are scanning terraform
-          output_format: github_pull_request # This will post a comment
-          soft_fail: true # We'll let the check pass so we can see the plan
+          directory: .
+          framework: terraform
+          output_format: sarif
+          output_file_path: checkov.sarif
+          soft_fail: true # Ensure the step passes so we can upload the report
+
+      # Step 2: Upload the SARIF file to GitHub Security tab
+      - name: Upload SARIF report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: checkov.sarif # Tell GitHub where to find the report
 
   # --- UPDATED JOB: TERRAFORM PLAN ---
   terraform-plan:
