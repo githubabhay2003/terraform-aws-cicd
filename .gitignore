@@ -1,0 +1,13 @@
+# .gitignore: Local Terraform directories and files
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.auto.tfvars
+
+# Crash log files
+crash.log
+
+# Exclude all .env files
+.env
