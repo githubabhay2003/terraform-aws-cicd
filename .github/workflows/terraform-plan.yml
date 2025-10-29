@@ -29,7 +29,6 @@ jobs:
           framework: terraform # Specify we are scanning terraform
           output_format: github_pull_request # This will post a comment
           soft_fail: true # We'll let the check pass so we can see the plan
-          github_token: ${{ secrets.GITHUB_TOKEN }}
 
   # --- UPDATED JOB: TERRAFORM PLAN ---
   terraform-plan:
