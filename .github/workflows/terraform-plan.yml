@@ -13,7 +13,6 @@ permissions:
   security-events: write # Required for SARIF upload
 
 jobs:
-  # --- UPDATED JOB: CHECKOV SCAN + SARIF UPLOAD ---
   checkov-scan:
     name: "Security Scan (Checkov)"
     runs-on: ubuntu-latest
@@ -22,7 +21,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Step 1: Run Checkov and output a SARIF file
       - name: Run Checkov
         uses: bridgecrewio/checkov-action@v12
         with:
@@ -30,19 +28,18 @@ jobs:
           framework: terraform
           output_format: sarif
           output_file_path: checkov.sarif
-          soft_fail: true # Ensure the step passes so we can upload the report
+          soft_fail: true
 
-      # Step 2: Upload the SARIF file to GitHub Security tab
       - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: checkov.sarif # Tell GitHub where to find the report
+          sarif_file: checkov.sarif
 
-  # --- UPDATED JOB: TERRAFORM PLAN ---
-  terraform-plan:
-    name: "Terraform Plan"
+  # --- NEW COMBINED JOB FOR PLAN AND COST ---
+  plan-and-cost:
+    name: "Plan and Cost"
     runs-on: ubuntu-latest
-    needs: checkov-scan # <-- This now waits for the new Checkov scan
+    needs: [checkov-scan] # Wait for security scan
 
     steps:
       - name: Checkout
@@ -66,10 +63,12 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
+      # --- PLAN GENERATION ---
       - name: Terraform Plan
         id: plan
         run: terraform plan -no-color -out=tfplan
 
+      # --- POST PLAN COMMENT ---
       - name: Convert plan to text
         run: terraform show -no-color tfplan > tfplan.txt
 
@@ -90,7 +89,34 @@ jobs:
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
+
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: output
             });
+
+      # --- COST ESTIMATION ---
+      - name: Install Infracost
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
+
+      # Convert binary plan to Infracost-readable JSON plan
+      - name: Generate Infracost JSON from plan
+        run: terraform show -json tfplan > tfplan.json
+
+      # Run breakdown on the JSON plan file
+      - name: Run Infracost breakdown
+        run: infracost breakdown --path tfplan.json --format json --out-file infracost.json
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
+      # Post the Infracost comment
+      - name: Post Infracost comment
+        run: |
+          infracost comment github --path infracost.json \
+            --behavior update \
+            --repo ${{ github.repository }} \
+            --pull-request ${{ github.event.pull_request.number }} \
+            --github-token ${{ secrets.GITHUB_TOKEN }}
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
